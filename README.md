@@ -6,6 +6,7 @@ The built-in switcher lists every running app. CmdFocus leaves out:
 
 - apps you've hidden (Cmd+H)
 - apps whose windows are all minimized or closed
+- apps whose windows are all on a different desktop (Space)
 
 Everything else works the way you're used to.
 
@@ -52,6 +53,6 @@ That permission is what lets CmdFocus notice Cmd+Tab before macOS does. It doesn
 
 ## Good to know
 
-- An app with windows on another desktop (Space) still shows up.
+- Only apps with a window on the desktop (Space) you're currently looking at show up. Switch desktops and the list changes.
 - The order is most recently used first. Right after CmdFocus starts, the order may be a little different from what you expect until you've switched apps a few times.
 - If the app you're in has no windows, it won't be in the list.

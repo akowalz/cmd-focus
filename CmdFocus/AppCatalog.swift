@@ -3,8 +3,8 @@ import AppKit
 /// Knows which apps belong in the switcher and in what order.
 ///
 /// An app is listed when it is a regular (Dock) app, is not hidden, and has at
-/// least one window that is actually showing on some Space. Minimized windows,
-/// closed windows and the windows of hidden apps don't count.
+/// least one window that is actually showing on the current Space. Minimized windows,
+/// closed windows, the windows of hidden apps and windows on other Spaces don't count.
 final class AppCatalog: NSObject {
     /// Most recently activated first.
     private var recency: [pid_t] = []
@@ -57,10 +57,10 @@ final class AppCatalog: NSObject {
     ]
     private static let minimumWindowSide: CGFloat = 50
 
-    /// Process IDs owning at least one window that is showing on any Space.
+    /// Process IDs owning at least one window that is showing on the current Space.
     static func pidsWithVisibleWindows() -> Set<pid_t> {
-        // Ordered-in windows on every Space. Minimized windows, closed-but-retained
-        // windows and the windows of hidden apps are ordered out, so they're absent.
+        // Minimized windows, closed-but-retained windows and the windows of hidden apps
+        // are ordered out, so they're absent from this list.
         let showing = Set(orderedInWindowNumbers())
         guard !showing.isEmpty,
               let windows = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
@@ -81,9 +81,10 @@ final class AppCatalog: NSObject {
         return pids
     }
 
-    /// Front-to-back window numbers of every ordered-in window, across all apps and Spaces.
+    /// Front-to-back window numbers of every app's ordered-in windows on the current Space
+    /// (with several displays, the Space currently showing on each one).
     private static func orderedInWindowNumbers() -> [Int] {
-        (NSWindow.windowNumbers(options: [.allApplications, .allSpaces]) ?? []).map(\.intValue)
+        (NSWindow.windowNumbers(options: [.allApplications]) ?? []).map(\.intValue)
     }
 
     // MARK: - Recency
