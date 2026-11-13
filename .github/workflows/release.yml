@@ -1,0 +1,28 @@
+name: Release
+
+# Pushing a tag like v0.2.0 builds the app and publishes it on the Releases page.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          xcodebuild -project CmdFocus.xcodeproj -scheme CmdFocus -configuration Release \
+            -derivedDataPath build MARKETING_VERSION="${GITHUB_REF_NAME#v}" build
+
+      - name: Zip
+        run: ditto -c -k --keepParent build/Build/Products/Release/CmdFocus.app CmdFocus.zip
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" CmdFocus.zip --title "CmdFocus ${GITHUB_REF_NAME#v}" --generate-notes
