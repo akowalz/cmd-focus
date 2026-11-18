@@ -34,6 +34,7 @@ final class SwitcherController: NSObject {
         super.init()
         panel.onHover = { [weak self] index in self?.hover(index) }
         panel.onClick = { [weak self] index in self?.click(index) }
+        panel.onDrop = { [weak self] index, urls in self?.drop(urls, on: index) ?? false }
 
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didTerminateApplicationNotification, NSWorkspace.didHideApplicationNotification] {
@@ -225,6 +226,22 @@ final class SwitcherController: NSObject {
         guard isActive, apps.indices.contains(index) else { return }
         selected = index
         commit()
+    }
+
+    /// Opens files dropped on an icon with that app, like dropping them on its Dock icon.
+    private func drop(_ urls: [URL], on index: Int) -> Bool {
+        guard isActive, apps.indices.contains(index) else { return false }
+        let app = apps[index]
+        end()
+        guard !app.isTerminated else { return false }
+        guard let bundleURL = app.bundleURL else {
+            app.activate(options: [.activateAllWindows])
+            return false
+        }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+        NSWorkspace.shared.open(urls, withApplicationAt: bundleURL, configuration: configuration)
+        return true
     }
 
     // MARK: - Panel

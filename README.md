@@ -22,6 +22,8 @@ Everything else works the way you're used to.
 | Esc | Close the switcher without switching |
 | Move the mouse over an icon | Highlight it |
 | Click an icon | Switch to it |
+| Drag something over an icon | Highlight it, then let go of Cmd to switch with the drag still in hand |
+| Drop files on an icon | Open them in that app |
 
 Keep holding Cmd the whole time, just like the normal switcher.
 

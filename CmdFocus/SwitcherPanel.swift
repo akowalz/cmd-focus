@@ -20,6 +20,11 @@ final class SwitcherPanel: NSPanel {
         get { switcherView.onClick }
         set { switcherView.onClick = newValue }
     }
+    /// Files dropped on an icon. Return `true` if the drop was handled.
+    var onDrop: ((Int, [URL]) -> Bool)? {
+        get { switcherView.onDrop }
+        set { switcherView.onDrop = newValue }
+    }
 
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
@@ -103,6 +108,7 @@ private struct SwitcherLayout {
 private final class SwitcherView: NSView {
     var onHover: ((Int) -> Void)?
     var onClick: ((Int) -> Void)?
+    var onDrop: ((Int, [URL]) -> Bool)?
 
     /// Transparent room around the glass so its shadow isn't clipped by the window edge.
     private static let shadowMargin: CGFloat = 48
@@ -129,6 +135,11 @@ private final class SwitcherView: NSView {
         label.lineBreakMode = .byTruncatingTail
         content.addSubview(highlight)
         content.addSubview(label)
+
+        // Any kind of drag highlights the icon under it, so letting go of Command brings that
+        // app forward with the drag still in hand. Only files can be dropped on an icon.
+        registerForDraggedTypes([.fileURL, .URL, .string, .rtf, .html, .tiff, .png, .pdf,
+                                 NSPasteboard.PasteboardType("public.data")])
     }
 
     @available(*, unavailable)
@@ -218,9 +229,41 @@ private final class SwitcherView: NSView {
     }
 
     private func index(for event: NSEvent) -> Int? {
-        let point = convert(event.locationInWindow, from: nil)
+        index(atWindowPoint: event.locationInWindow)
+    }
+
+    private func index(atWindowPoint windowPoint: NSPoint) -> Int? {
+        let point = convert(windowPoint, from: nil)
         guard glass.frame.contains(point) else { return nil }
         return layout.index(atX: point.x - glass.frame.minX)
+    }
+
+    // MARK: Drag and drop
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        draggingUpdated(sender)
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        guard let index = index(atWindowPoint: sender.draggingLocation) else { return [] }
+        onHover?(index)
+        guard !fileURLs(from: sender).isEmpty else { return [] }
+        let allowed = sender.draggingSourceOperationMask
+        if allowed.contains(.generic) { return .generic }
+        if allowed.contains(.copy) { return .copy }
+        return []
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        let urls = fileURLs(from: sender)
+        guard !urls.isEmpty, let index = index(atWindowPoint: sender.draggingLocation) else { return false }
+        return onDrop?(index, urls) ?? false
+    }
+
+    private func fileURLs(from sender: any NSDraggingInfo) -> [URL] {
+        let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
+        return urls ?? []
     }
 }
 
